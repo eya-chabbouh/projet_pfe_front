@@ -34,6 +34,7 @@ export default function Register() {
           password_confirmation: confirmPassword, // Le champ de confirmation du mot de passe
         });
         console.log("Inscription réussie:", response.data);
+        alert("Inscription réussie.");
         // Rediriger ou informer l'utilisateur ici
       } catch (error) {
         console.error("Erreur lors de l'inscription:", error);
