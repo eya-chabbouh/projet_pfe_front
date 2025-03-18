@@ -1,17 +1,39 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import AdminLayout from "../components/AdminLayout/page";
+import { Chart, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement } from "chart.js";
+import { Line, Pie, Bar } from "react-chartjs-2";
 
-const Card = ({ title, value, description }: { title: string, value: number, description: string }) => {
-    return (
-      <div className="bg-white shadow-md rounded-lg p-6 w-full md:w-1/3 mb-6">
-        <h3 className="text-xl font-semibold text-gray-700">{title}</h3>
-        <p className="text-4xl font-bold text-indigo-600">{value}</p>
-        <p className="text-gray-500">{description}</p>
+Chart.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title, BarElement);
+
+interface CardProps {
+  title: string;
+  value: number | string;
+  description?: string;
+  icon: string;
+  color: string;
+}
+const Card: React.FC<CardProps> = ({ title, value, description, icon, color }) => {
+  return (
+    <div className="col-xl-3 col-md-6 mb-4">
+      <div className={`card border-left-${color} shadow h-100 py-2`}>
+        <div className="card-body">
+          <div className="row no-gutters align-items-center">
+            <div className="col mr-2">
+              <div className={`text-xs font-weight-bold text-${color} text-uppercase mb-1`}>{title}</div>
+              <div className="h5 mb-0 font-weight-bold text-gray-800">{value}</div>
+              <div className="text-gray-500">{description}</div>
+            </div>
+            <div className="col-auto">
+              <i className={`fas ${icon} fa-2x text-gray-300`}></i>
+            </div>
+          </div>
+        </div>
       </div>
-    );
+    </div>
+  );
 };
 
 const Dashboard = () => {
@@ -20,9 +42,9 @@ const Dashboard = () => {
     clients_count: 0,
     popular_services: [],
   });
+  
 
-  const router = useRouter();
-
+    
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -41,78 +63,74 @@ const Dashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/");
-  };
-
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-800 text-white p-5 flex flex-col space-y-4">
-        <h2 className="text-2xl font-bold mb-4">Menu</h2>
-        <nav className="space-y-2">
-          <a href="/dashboard" className="block p-2 hover:bg-gray-700 rounded">Dashboard</a>
-          <a href="/users" className="block p-2 hover:bg-gray-700 rounded">Utilisateurs</a>
-          <a href="/categories" className="block p-2 hover:bg-gray-700 rounded">Catégories</a>
-          <a href="/profile" className="block p-2 hover:bg-gray-700 rounded">Profil</a>
-          <a href="/settings" className="block p-2 hover:bg-gray-700 rounded">Paramètres</a>
-          <button
-            onClick={handleLogout}
-            className="w-full text-left p-2 hover:bg-red-600 rounded mt-4"
-          >
-            Déconnexion
-          </button>
-        </nav>
-      </div>
+    <AdminLayout>
+      <div className="container-fluid">
+        <h1 className="h3 mb-4 text-gray-800">Dashboard</h1>
 
-      {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 py-8 relative">
-        {/* Admin Profile Section */}
-        <div className="absolute top-4 right-4 flex items-center space-x-3 bg-white shadow-md p-3 rounded-lg">
-          <Image
-            src="/images/admin-icon.png" // Remplace par le chemin de ton image
-            alt="Admin Icon"
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
-          <span className="text-gray-800 font-semibold">Admin</span>
+        <div className="row">
+          <Card title="Nombre de réservations" value={dashboardData.reservations_count} description="Total des réservations" icon="fa-calendar" color="primary" />
+          <Card title="Nombre de clients" value={dashboardData.clients_count} description="Clients inscrits" icon="fa-users" color="success" />
+          <Card title="Tasks" value="50%" description="Completed Tasks" icon="fa-clipboard-list" color="info" />
+          <Card title="Pending Requests" value="18" description="Pending Approvals" icon="fa-comments" color="warning" />
         </div>
 
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">Tableau de bord</h1>
-        
-        <div className="flex flex-wrap -mx-4">
-          <Card
-            title="Nombre de réservations"
-            value={dashboardData.reservations_count}
-            description="Total des réservations"
-          />
-          <Card
-            title="Nombre de clients"
-            value={dashboardData.clients_count}
-            description="Clients inscrits"
-          />
+        <div className="row">
+          <Card title="Total Sales" value="$1k" description="Last day +8%" icon="fa-dollar-sign" color="success" />
+          <Card title="Total Order" value="300" description="Last day +5%" icon="fa-shopping-cart" color="primary" />
+          <Card title="Sold" value="5" description="Last day +1.2%" icon="fa-chart-line" color="info" />
+          <Card title="Customers" value="8" description="Last day +0.5%" icon="fa-user" color="warning" />
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Services populaires</h2>
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <ul className="space-y-4">
-              {dashboardData.popular_services.map((service: any, index: number) => (
-                <li key={index} className="flex justify-between items-center">
-                  <div>
-                    <span className="text-lg font-semibold text-gray-700">{service.nom_entites}</span> {/* Affichage du nom de l'entité */}
-                    <p className="text-gray-500">{service.description}</p> {/* Affichage de la description si nécessaire */}
-                  </div>
-                  <span className="text-gray-500">{service.reservations_count} réservations</span> {/* Affichage du nombre de réservations */}
-                </li>
-              ))}
-            </ul>
+        <div className="row">
+          <div className="col-xl-8 col-lg-7">
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="m-0 font-weight-bold text-primary">Earnings Overview</h6>
+              </div>
+              <div className="card-body">
+                <Line data={{ labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"], datasets: [{ label: "Earnings", data: [40000, 45000, 38000, 50000, 60000, 70000], borderColor: "#4e73df", backgroundColor: "rgba(78, 115, 223, 0.2)", tension: 0.3 }] }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="col-xl-4 col-lg-5">
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="m-0 font-weight-bold text-primary">Revenue Sources</h6>
+              </div>
+              <div className="card-body">
+                <Pie data={{ labels: ["Direct", "Social", "Referral"], datasets: [{ data: [55, 30, 15], backgroundColor: ["#4e73df", "#1cc88a", "#36b9cc"], hoverBackgroundColor: ["#2e59d9", "#17a673", "#2c9faf"] }] }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Ajout des nouveaux graphiques */}
+        <div className="row">
+          <div className="col-xl-6">
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="m-0 font-weight-bold text-primary">Revenu Total</h6>
+              </div>
+              <div className="card-body">
+                <Bar data={{ labels: ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"], datasets: [{ label: "Online Sales", data: [200, 450, 300, 500, 700], backgroundColor: "#3f51b5" }, { label: "Offline Sales", data: [150, 300, 200, 400, 600], backgroundColor: "#4caf50" }] }} />
+              </div>
+            </div>
+          </div>
+          <div className="col-xl-6">
+            <div className="card shadow mb-4">
+              <div className="card-header py-3">
+                <h6 className="m-0 font-weight-bold text-primary">Satisfaction des Clients</h6>
+              </div>
+              <div className="card-body">
+                <Line data={{ labels: ["Jan", "Fév", "Mar", "Avr", "Mai"], datasets: [{ label: "Dernier Mois", data: [70, 75, 72, 78, 80], borderColor: "#1e88e5", fill: false }, { label: "Ce Mois-ci", data: [65, 68, 70, 72, 74], borderColor: "#ff9800", fill: false }] }} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 
