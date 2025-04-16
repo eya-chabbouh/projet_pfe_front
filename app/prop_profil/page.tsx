@@ -112,7 +112,7 @@ export default function AdminProfile() {
   return (
     <div className="min-h-screen bg-gray-100 p-10">
       <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-        <Link href="dashbord">
+        <Link href="dashbord2">
           <button className="mb-4 text-blue-500 hover:underline"> ← Retour</button>
         </Link>
 
@@ -274,7 +274,3 @@ export default function AdminProfile() {
     </div>
   );
 }
-
-
-
-

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css"; 
+import "bootstrap/dist/css/bootstrap.min.css";
+import Link from "next/link";
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({
@@ -9,29 +10,68 @@ export default function ContactForm() {
     message: "",
   });
 
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Tu peux récupérer le token depuis localStorage ou un context
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Formulaire soumis :", formData);
+
+    if (!token) {
+      setError("Vous devez être connecté pour envoyer une réclamation.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/reclamations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage("Réclamation envoyée avec succès !");
+        setFormData({ nom: "", email: "", message: "" }); // Reset form
+      } else {
+        setError(data.message || "Une erreur s'est produite.");
+      }
+    } catch (err) {
+      setError("Erreur lors de l'envoi. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="container mt-5">
-      {/* Bannière promo */}
+       <Link href="/client">
+          <button className="mt-4 text-blue-500 hover:text-blue-700 transition duration-200"> Retour </button>
+        </Link>
       <div className="alert alert-primary text-center fw-bold" role="alert">
         🎉 Économisez 15 % ! Contactez-nous maintenant !
       </div>
 
-      {/* Section Contact */}
       <div className="text-center">
         <h2 className="fw-bold">Contact</h2>
         <p className="text-muted">Besoin d'aide ? Contactez-nous.</p>
       </div>
 
-      {/* Informations de contact */}
       <div className="row text-center my-4">
         <div className="col-md-6">
           <h5>📞 Appelez-nous</h5>
@@ -39,14 +79,14 @@ export default function ContactForm() {
         </div>
         <div className="col-md-6">
           <h5>📧 Envoyez-nous un courriel</h5>
-          <p className="fw-bold">contact@freeoui.com</p>
+          <p className="fw-bold">contact@gmail.com</p>
         </div>
       </div>
 
-      {/* Formulaire de contact */}
       <div className="row justify-content-center">
         <div className="col-md-6">
-          
+          {message && <div className="alert alert-success">{message}</div>}
+          {error && <div className="alert alert-danger">{error}</div>}
 
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
@@ -88,7 +128,9 @@ export default function ContactForm() {
                 required
               ></textarea>
             </div>
-            <button type="submit" className="btn btn-primary w-100">Soumettre</button>
+            <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+              {loading ? "Envoi en cours..." : "Soumettre"}
+            </button>
           </form>
         </div>
       </div>

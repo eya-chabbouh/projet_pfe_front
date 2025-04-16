@@ -77,23 +77,12 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
           </Link>
         </li>
         <li className="nav-item">
-          <Link className="nav-link" href="/proprietaires">
-            <i className="fas fa-list"></i>
-            <span>Proprietaire</span>
-          </Link>
-        </li>
-        <li className="nav-item">
-          <Link className="nav-link" href="/profile">
+          <Link className="nav-link" href="/admin">
             <i className="fas fa-user"></i>
-            <span>Profile</span>
+            <span>Profil</span>
           </Link>
         </li>
-        <li className="nav-item">
-          <Link className="nav-link" href="/settings">
-            <i className="fas fa-cog"></i>
-            <span>Paramètres</span>
-          </Link>
-        </li>
+       
         <hr className="sidebar-divider d-none d-md-block" />
 
         {/* Toggle Sidebar */}
@@ -126,11 +115,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
                 {/* Dropdown menu */}
                 {menuOpen && (
                   <div className="dropdown-menu dropdown-menu-right shadow animated--grow-in show">
-                    <Link className="dropdown-item" href="/profile">
+                    <Link className="dropdown-item" href="/admin">
                       <i className="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                      Profile
+                      Profil
                     </Link>
-                    <Link className="dropdown-item" href="/settings">
+                    <Link className="dropdown-item" href="/admin">
                       <i className="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                       Paramètres
                     </Link>

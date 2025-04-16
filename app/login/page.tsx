@@ -88,14 +88,14 @@ export default function Login({ isLogin = true }) {
               <button
                 type="button"
                 className="btn btn-outline-danger w-100 rounded-pill d-flex align-items-center justify-content-center py-2"
-                onClick={() => window.location.href = 'http://127.0.0.1:8000/auth/google'}
+              
               >
                 <FaGoogle size={20} className="me-2" /> {isLogin ? "Se connecter avec Google" : "S'inscrire avec Google"}
               </button>
               <button
                 type="button"
                 className="btn btn-outline-primary w-100 rounded-pill d-flex align-items-center justify-content-center mt-2 py-2"
-                onClick={() =>window.location.href = 'http://127.0.0.1:8000/auth/facebook'}
+               
               >
                 <FaFacebookF size={20} className="me-2" /> {isLogin ? "Se connecter avec Facebook" : "S'inscrire avec Facebook"}
               </button>
