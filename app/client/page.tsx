@@ -3,78 +3,148 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import Link from "next/link";
-import { FaHeart, FaCog, FaSignOutAlt, FaUserEdit, FaTrashAlt, FaLayerGroup, FaEdit,FaEnvelope } from "react-icons/fa";
+import Navbar from "../components/Navbar";
 
-export default function ProfilePage() {
+export default function EditProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; image: string; points: number; favorites: number; photo?: string }>({
+
+  const [formData, setFormData] = useState({
     name: "",
-    image: "",
-    points: 0,
-    favorites: 0,
+    email: "",
+    phone: "",
+    birthdate: "",
+    gender: "",
+    governorate: "",
+    city: "",
+    photo: "" as string | File,
   });
-    const [photoPreview, setPhotoPreview] = useState<string | null>(null);  
-  const [formData, setFormData] = useState<any>({
-    name: "",
-    photo: null,
-  });
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showPointsDetails, setShowPointsDetails] = useState(false);
+
+  const [photoPreview, setPhotoPreview] = useState<string>("/default-avatar.png");
+  const [cities, setCities] = useState<string[]>([]);
+  const [message, setMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const governorates: Record<string, string[]> = {
+    "Tunis": ["Tunis", "La Marsa", "Le Bardo"],
+    "Sfax": ["Sfax Ville", "Sakiet Ezzit", "Thyna"],
+    "Sousse": ["Sousse Ville", "Hammam Sousse", "Kalaâ Kebira"],
+    "Ariana": ["Ariana Ville", "Raoued", "La Soukra"],
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-console.log("Token:", token); // Check the value
     axios
       .get("http://127.0.0.1:8000/api/client/profile", {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => {
-        setUser(res.data);
-        setFormData({ name: res.data.name, photo: res.data.photo });
-        if (res.data.photo) {
-          if (res.data.photo.startsWith("http")) {
-            setPhotoPreview(res.data.photo); // Google/Facebook Image
-          } else {
-            setPhotoPreview(`http://127.0.0.1:8000/storage/${res.data.photo}`); // Laravel Storage
-          }
-        } else {
-          setPhotoPreview("/default-avatar.png"); // Image par défaut
+        const data = res.data;
+        setFormData({
+          name: data.name,
+          email: data.email,
+          phone: data.tel,
+          birthdate: data.birthdate || "",
+          gender: data.genre || "",
+          governorate: data.gouvernement || "",
+          city: data.ville || "",
+          photo: data.photo || "",
+        });
+
+        if (data.gouvernement) {
+          setCities(governorates[data.gouvernement] || []);
+        }
+
+        if (data.photo) {
+          setPhotoPreview(
+            data.photo.startsWith("http")
+              ? data.photo
+              : `http://127.0.0.1:8000/storage/${data.photo}`
+          );
         }
       })
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, []);
+
+  const validate = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name.trim()) newErrors.name = "Ce champ est obligatoire.";
+    if (!formData.email.trim()) newErrors.email = "Ce champ est obligatoire.";
+    if (!formData.phone.trim()) newErrors.phone = "Ce champ est obligatoire.";
+    if (!formData.gender) newErrors.gender = "Ce champ est obligatoire.";
+    if (!formData.governorate) newErrors.governorate = "Ce champ est obligatoire.";
+    if (!formData.city) newErrors.city = "Ce champ est obligatoire.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (value.trim() !== "" && errors[name]) {
+      const newErrors = { ...errors };
+      delete newErrors[name];
+      setErrors(newErrors);
+    }
+  };
+
+  const handleGovernorateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value;
+    setFormData({ ...formData, governorate: selected, city: "" });
+    setCities(governorates[selected] || []);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFormData({ ...formData, photo: e.target.files[0] });
-      setPhotoPreview(URL.createObjectURL(e.target.files[0])); 
+      setPhotoPreview(URL.createObjectURL(e.target.files[0]));
     }
   };
 
-  const handleDeleteAccount = () => {
-    axios
-      .delete("http://127.0.0.1:8000/api/client/delete", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
-      .then(() => {
-        localStorage.removeItem("token");
-        router.push("/login");
-      })
-      .catch((err) => console.error(err));
+  const handleRemovePhoto = () => {
+    setFormData({ ...formData, photo: "" });
+    setPhotoPreview("/default-avatar.png");
   };
 
-  const handleShowPoints = () => {
-    setShowPointsDetails(!showPointsDetails);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+
+  const handleDeleteAccount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://127.0.0.1:8000/api/client/delete", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+  
+      if (res.ok) {
+        localStorage.removeItem("token");
+        router.push("/");
+      } else {
+        alert("Erreur lors de la suppression du compte.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erreur réseau.");
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
 
     const updatedFormData = new FormData();
     updatedFormData.append("name", formData.name);
+    updatedFormData.append("email", formData.email);
+    updatedFormData.append("tel", formData.phone);
+    updatedFormData.append("birthdate", formData.birthdate);
+    updatedFormData.append("genre", formData.gender);
+    updatedFormData.append("gouvernement", formData.governorate);
+    updatedFormData.append("ville", formData.city);
 
-    if (formData.photo) {
+    if (formData.photo && formData.photo instanceof File) {
       updatedFormData.append("photo", formData.photo);
     }
 
@@ -86,137 +156,141 @@ console.log("Token:", token); // Check the value
         },
       })
       .then(() => {
-        router.push("/client");
+        setMessage("Profil mis à jour avec succès !");
+        setTimeout(() => router.push("/client"), 2000);
       })
-      .catch((err) => console.error(err));
+      .catch(() => setMessage("Erreur lors de la mise à jour du profil."));
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-10">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
-        <Link href="/dashbordC">
-          <button className="mt-4 text-blue-500 hover:text-blue-700 transition duration-200">Retour </button>
-        </Link>
-        {/* Profil Image Section */}
-        <div className="relative w-28 h-28 mx-auto">
-        <img
-            src={photoPreview || "/default-avatar.png"}
-            alt="Profil"
-            className="w-full h-full object-cover rounded-full cursor-pointer"
-            onClick={() => (document.querySelector("#file-input") as HTMLInputElement)?.click()}
-          />
-          {/* Button to trigger file input */}
-          <label
-            htmlFor="file-input"
-            className="absolute bottom-0 right-0 p-2 bg-gray-800 rounded-full cursor-pointer"
-          >
-            <FaEdit className="text-white" />
-          </label>
+    <>
+      <Navbar />
+      <main className="flex min-h-screen bg-gray-100 items-center justify-center p-6">
+        <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-2xl">
+          <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">Modifier Profil</h1>
+
+          {message && (
+            <div className={`mb-4 p-4 text-center text-white ${message.includes("Erreur") ? "bg-red-500" : "bg-green-500"}`}>
+              {message}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Photo */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-32 h-32 group mb-3">
+                <img src={photoPreview} alt="Avatar" className="rounded-full w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex justify-center items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <label htmlFor="photo" className="text-sm bg-white px-3 py-1 rounded cursor-pointer text-blue-600 font-semibold">Changer
+                    <input type="file" id="photo" className="hidden" accept="image/*" onChange={handleFileChange} />
+                  </label>
+                  <button type="button" onClick={handleRemovePhoto} className="text-sm bg-white px-3 py-1 rounded text-red-600 font-semibold">Annuler</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Champs texte */}
+            {[
+              { label: "Nom", name: "name", type: "text" },
+              { label: "Email", name: "email", type: "email" },
+              { label: "Téléphone", name: "phone", type: "text" },
+              { label: "Date de naissance", name: "birthdate", type: "date" },
+            ].map(({ label, name, type }) => (
+              <div key={name}>
+                <label className="block text-gray-700 font-medium">{label} <span className="text-red-500">*</span></label>
+                <input
+                  type={type}
+                  name={name}
+                  value={formData[name as keyof typeof formData] as string}
+                  onChange={handleChange}
+                  className={`w-full border p-3 rounded-md ${errors[name] ? 'border-red-500' : 'border-gray-300'}`}
+                />
+                {errors[name] && <p className="text-red-500 text-sm mt-1">{errors[name]}</p>}
+              </div>
+            ))}
+
+            {/* Genre */}
+            <div className="mb-3">
+          <label className="form-label">Genre <span className="text-danger">*</span></label><br />
+          {["homme", "femme"].map((value) => (
+            <div className="form-check form-check-inline" key={value}>
+              <input
+                className="form-check-input"
+                type="radio"
+                name="gender"
+                value={value}
+                checked={formData.gender === value}
+                onChange={handleChange}
+              />
+              <label className="form-check-label">
+                {value.charAt(0).toUpperCase() + value.slice(1)}
+              </label>
+            </div>
+          ))}
+          {errors.gender && <div className="text-danger mt-1">{errors.gender}</div>}
         </div>
 
-        {/* User Name */}
-        <h1 className="text-2xl font-semibold mt-4 text-gray-900 text-center">{user.name}</h1>
-        
-        {/* Favorites and Points Section */}
-        <div className="flex justify-center gap-4 mt-3">
-          <Link
-            href="/favoris"
-            className="bg-gray-100 px-4 py-2 rounded-lg shadow text-center cursor-pointer"
-          >
-            <FaHeart className="text-red-500 mx-auto" />
-            <p className="text-sm text-gray-600">Favoris</p>
-            <p className="text-lg font-semibold text-gray-900">{user.favorites}</p>
-          </Link>
-
-          
-        </div>
-
-        
-
-        {/* Actions Section */}
-        <div className="mt-6 space-y-3">
-          <button
-            onClick={() => router.push("/client/edit")}
-            className="flex items-center justify-between w-full bg-gray-900 hover:bg-gray-700 text-white py-3 px-4 rounded-lg transition"
-          >
-            <span>Modifier mes informations</span>
-            <FaUserEdit />
-          </button>
-          <button
-            onClick={() => router.push("/client/categorie")}
-            className="flex items-center justify-between w-full bg-gray-900 hover:bg-gray-700 text-white py-3 px-4 rounded-lg transition"
-          >
-            <span>Modifier mes catégories</span>
-            <FaLayerGroup />
-          </button>
-          <button
-            onClick={() => router.push("/client/settings")}
-            className="flex items-center justify-between w-full bg-gray-900 hover:bg-gray-700 text-white py-3 px-4 rounded-lg transition"
-          >
-            <span>Paramètres (Mot de passe)</span>
-            <FaCog />
-          </button>
-          <button
-              onClick={() => router.push("/contact")}
-              className="flex items-center justify-between w-full bg-gray-900 hover:bg-blue-500 text-white py-3 px-4 rounded-lg transition"
+            {/* Localisation */}
+            <div className="row">
+          <div className="col-md-6 mb-3">
+            <label className="form-label">Gouvernorat <span className="text-danger">*</span></label>
+            <select
+              name="governorate"
+              className={`form-select ${errors.governorate ? "is-invalid" : ""}`}
+              value={formData.governorate}
+              onChange={handleGovernorateChange}
             >
-              <span>Connectez-nous</span>
-              <FaEnvelope />
-          </button>
-          <button
-            onClick={() => setShowDeleteDialog(true)}
-            className="flex items-center justify-between w-full bg-red-600 hover:bg-red-500 text-white py-3 px-4 rounded-lg transition"
-          >
-            <span>Supprimer mon compte</span>
-            <FaTrashAlt />
-          </button>
+              <option value="">-- Sélectionner --</option>
+              {Object.keys(governorates).map((gov) => (
+                <option key={gov} value={gov}>{gov}</option>
+              ))}
+            </select>
+            {errors.governorate && <div className="invalid-feedback">{errors.governorate}</div>}
+          </div>
+
+          <div className="col-md-6 mb-3">
+            <label className="form-label">Ville <span className="text-danger">*</span></label>
+            <select
+              name="city"
+              className={`form-select ${errors.city ? "is-invalid" : ""}`}
+              value={formData.city}
+              onChange={handleChange}
+            >
+              <option value="">-- Sélectionner --</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>{city}</option>
+              ))}
+            </select>
+            {errors.city && <div className="invalid-feedback">{errors.city}</div>}
+          </div>
         </div>
 
-        {/* Logout Button */}
-        <button
-          onClick={() => {
-            localStorage.removeItem("token");
-            router.push("/login");
-          }}
-          className="mt-6 w-full flex items-center justify-between bg-gray-900 hover:bg-gray-700 text-white py-3 px-4 rounded-lg transition"
-        >
-          <span>Déconnexion</span>
-          <FaSignOutAlt />
-        </button>
-
-        {/* Delete Account Dialog */}
-        {showDeleteDialog && (
-          <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg shadow-lg text-center">
-              <p className="text-lg font-semibold">Êtes-vous sûr de vouloir supprimer votre compte ?</p>
-              <div className="mt-4 flex justify-center gap-4">
-                <button
-                  onClick={handleDeleteAccount}
-                  className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Oui
-                </button>
-                <button
-                  onClick={() => setShowDeleteDialog(false)}
-                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg"
-                >
-                  Annuler
-                </button>
+            {/* Actions */}
+            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700">
+              Sauvegarder
+            </button>
+            <button type="button" onClick={() => router.push("/dashbordC")} className="w-full bg-gray-600 text-white py-3 rounded-md hover:bg-gray-700">
+              Annuler
+            </button>
+          </form>
+        </div>
+      </main>
+             {/* Confirmation delete */}
+             {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg text-center">
+              <p className="text-lg mb-4">Êtes-vous sûr de vouloir supprimer votre compte ?</p>
+              <div className="flex justify-center gap-4">
+                <button onClick={handleDeleteAccount} className="bg-red-600 text-white px-4 py-2 rounded">Oui</button>
+                <button onClick={() => setShowDeleteModal(false)} className="bg-gray-300 px-4 py-2 rounded">Annuler</button>
               </div>
             </div>
           </div>
         )}
-      </div>
-
-      {/* File input for updating profile image */}
-      <div className="hidden">
-        <input
-          type="file"
-          id="file-input"
-          accept="image/*"
-          onChange={handleFileChange}
-        />
-      </div>
-    </div>
+    </>
   );
 }
+
+     
+    
+
